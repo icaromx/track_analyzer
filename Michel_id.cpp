@@ -21,7 +21,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "/usr/local/Cellar/eigen/3.3.4/include/eigen3/Eigen/Dense" //Needed on MACOS
+#include "/grid/fermiapp/products/larsoft/eigen/v3_3_3/include/eigen3/Eigen/Dense"
+
+//#include "/usr/local/Cellar/eigen/3.3.4/include/eigen3/Eigen/Dense" //Needed on MACOS
 using namespace std;
 
 struct Point {
