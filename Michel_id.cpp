@@ -69,6 +69,7 @@ PCAResults DoPCA(const PointCloud &points);
 
 int main(int argc, char **argv){
   std::string line;
+  bool make_csv = false;
   TFile *f_output;
   //char *inputs = argv[1];
   std::ifstream ifs(argv[1]);
@@ -81,7 +82,7 @@ int main(int argc, char **argv){
   TH1F *hist_low_cos = new TH1F("hist_low_cos","Cos(#theta) < 0.8;Cos(#theta);Events",100,-1,1);
   TNtuple *nt_tracks = new TNtuple("tracks","tracks","run:event:c:x:y:z:q");
 
-  system("mkdir ../csv_files/");
+  if(make_csv) system("mkdir ../csv_files/");
   system("mkdir ../track_plots/");
 
 
@@ -262,31 +263,29 @@ int main(int argc, char **argv){
 		///////////////////////////////////////////////////////////////////////
 		///////////////Finished Ordering Points////////////////////////////////
 		double bottom_dist;
-
 		bottom_dist = abs(trk.back().y - low_ord_y);
-
 		if (bottom_dist > 10) continue;
-
 
 		////////////////////////////////////////////////////////////////////////
 		////////////////////////MAKING CSV FILES////////////////////////////////
-	    ofstream outfile;
+		ofstream outfile;
 		std::string cluster_string = std::to_string(cluster);
 		std::string unique_string = std::to_string(ev_num);
 		//string csv_filename = "track_" + std::to_string(cn) + "_" + cluster_string + ".csv";
 		string csv_filename = "../csv_files/track_" + cluster_string + "_" + unique_string + ".csv";
 		outfile.open(csv_filename);
 		for (int i = 0; i < ord_trk.size(); ++i){
-			outfile << ord_trk.at(i).x << ", " << ord_trk.at(i).y << endl;
+			if(make_csv) outfile << ord_trk.at(i).x << ", " << ord_trk.at(i).y << endl;
 			nt_tracks -> Fill(run_num, ev_num,ord_trk.at(i).c, ord_trk.at(i).x, ord_trk.at(i).y, ord_trk.at(i).z, ord_trk.at(i).q);
 		} 
-		outfile.close();
-	    ///////////////////////////////////////////////////////////////////////
+		if(make_csv) outfile.close();
+		
+	        ///////////////////////////////////////////////////////////////////////
 		///////////////Starting Moving Window//////////////////////////////////
 	 	
- 		int win_size;
- 		//for (int w = 6; w < 50; ++w){ //<window iter>
- 		//win_size = w;
+ 	int win_size;
+ 	for (int w = 6; w < 50; ++w){ //<window iter>
+ 		win_size = w;
 	 	track_def prev_chunk;
 	 	track_def post_chunk;
 	 	PointCloud prev_points;
@@ -296,12 +295,12 @@ int main(int argc, char **argv){
 	 	double dotProd, min_ang = 1.;
 	 	double ev_lowest = 100000;
 	 	double rr = 0.0;
-	 	win_size = 40;
+	 	//win_size = 40;
 	 	int buffer_size = 0;
 	 	int effective_window = win_size + buffer_size;
 	 	int vertex;
-	    if(ord_trk.size() < win_size*2) continue;
-	    for (int i = effective_window; i < ord_trk.size() - effective_window; ++i){
+	    	if(ord_trk.size() < win_size*2) continue;
+	    	for (int i = effective_window; i < ord_trk.size() - effective_window; ++i){
 			track_def prev_chunk;
 		 	track_def post_chunk;
 		 	PointCloud prev_points;
@@ -309,55 +308,50 @@ int main(int argc, char **argv){
 		 	PCAResults prev_results;
 		 	PCAResults post_results;
 
-	     	for (int j = i - effective_window; j < i - buffer_size; ++j){
-	     		TrkPoint prev_tempPoint;
-		        prev_tempPoint.c = ord_trk[j].c;
-		        prev_tempPoint.x = ord_trk[j].x;
-		        prev_tempPoint.y = ord_trk[j].y;
-		        prev_tempPoint.z = ord_trk[j].z;
-		        prev_tempPoint.q = ord_trk[j].q;
-		        prev_chunk.push_back(prev_tempPoint);	
-	     	}
-	     	for (int j = i + buffer_size; j < i + effective_window; ++j){
-	     		TrkPoint post_tempPoint;
-		        post_tempPoint.c = ord_trk[j].c;
-		        post_tempPoint.x = ord_trk[j].x;
-		        post_tempPoint.y = ord_trk[j].y;
-		        post_tempPoint.z = ord_trk[j].z;
-		        post_tempPoint.q = ord_trk[j].q;
-		        post_chunk.push_back(post_tempPoint);	
-	     	}
-	     	LoadPointCloud(prev_points, prev_chunk);
-	     	LoadPointCloud(post_points, post_chunk);
-	     	prev_results = DoPCA(prev_points);
-	     	post_results = DoPCA(post_points);
-	     	//cout << prev_results.length << ", " << post_results.length << endl;
-	     	rr += prev_results.length/win_size;
-	     	dotProd = prev_results.eVecs[0](0)*post_results.eVecs[0](0) + prev_results.eVecs[0](1)*post_results.eVecs[0](1) + prev_results.eVecs[0](2)*post_results.eVecs[0](2);
-	     	//cout << rr << ", " << dotProd << endl;
-	     	
-
-	     	if(dotProd < abs(min_ang)){
-	     		vertex = i + 0;
-	     		min_ang = dotProd;
-	     		VertexPoint.c = ord_trk[vertex].c;
-	     		VertexPoint.x = ord_trk[vertex].x;
-	     		VertexPoint.y = ord_trk[vertex].y;
-	     		VertexPoint.z = ord_trk[vertex].z;
-	     		VertexPoint.q = ord_trk[vertex].c;
-	     	}
-
-
-
-	    }
+	     		for (int j = i - effective_window; j < i - buffer_size; ++j){
+	     			TrkPoint prev_tempPoint;
+			        prev_tempPoint.c = ord_trk[j].c;
+			        prev_tempPoint.x = ord_trk[j].x;
+			        prev_tempPoint.y = ord_trk[j].y;
+			        prev_tempPoint.z = ord_trk[j].z;
+			        prev_tempPoint.q = ord_trk[j].q;
+			        prev_chunk.push_back(prev_tempPoint);	
+	     		}
+	     		for (int j = i + buffer_size; j < i + effective_window; ++j){
+	     			TrkPoint post_tempPoint;
+			        post_tempPoint.c = ord_trk[j].c;
+			        post_tempPoint.x = ord_trk[j].x;
+			        post_tempPoint.y = ord_trk[j].y;
+			        post_tempPoint.z = ord_trk[j].z;
+			        post_tempPoint.q = ord_trk[j].q;
+			        post_chunk.push_back(post_tempPoint);	
+	     		}
+	     		LoadPointCloud(prev_points, prev_chunk);
+	     		LoadPointCloud(post_points, post_chunk);
+	     		prev_results = DoPCA(prev_points);
+	     		post_results = DoPCA(post_points);
+	     		//cout << prev_results.length << ", " << post_results.length << endl;
+	     		rr += prev_results.length/win_size;
+	     		dotProd = prev_results.eVecs[0](0)*post_results.eVecs[0](0) + prev_results.eVecs[0](1)*post_results.eVecs[0](1) + prev_results.eVecs[0](2)*post_results.eVecs[0](2);
+	     		//cout << rr << ", " << dotProd << endl;
+	     		if(dotProd < abs(min_ang)){
+	     			vertex = i + 0;
+	     			min_ang = dotProd;
+	     			VertexPoint.c = ord_trk[vertex].c;
+	     			VertexPoint.x = ord_trk[vertex].x;
+	     			VertexPoint.y = ord_trk[vertex].y;
+	     			VertexPoint.z = ord_trk[vertex].z;
+	     			VertexPoint.q = ord_trk[vertex].c;
+	     		}
+	    	}
 	   	//////////////////////////////////////////////////////////////////////
 	    double dist_low_vert_y;
 	    dist_low_vert_y = abs(VertexPoint.y - low_ord_y);
 	    hist_angles -> Fill(min_ang);
 	    if(dist_low_vert_y > 10) continue;
 
-	    //if(min_ang < 0.8) cout << ev_num << ", " << run_num << ", " << cluster << ", " << VertexPoint.x << ", " << VertexPoint.y << ", " << min_ang << ", " << dist_low_vert_y << endl;
-	    if(min_ang < 0.8) cout << Form("Run = %d, Event = %d, Track = %d", run_num, ev_num, cluster) << endl;
+	    if(min_ang < 0.8) cout << ev_num << ", " << run_num << ", " << cluster << ", " << VertexPoint.x << ", " << VertexPoint.y << ", " << min_ang << ", " << dist_low_vert_y << endl;
+	    //if(min_ang < 0.8) cout << Form("Run = %d, Event = %d, Track = %d", run_num, ev_num, cluster) << endl;
 
 	    hist_angles -> Fill(min_ang);
 	    if(min_ang < 0.8) hist_low_cos->Fill(min_ang);
@@ -368,7 +362,7 @@ int main(int argc, char **argv){
 	    	kept_tracks.push_back(event_kept_trks);
 	    }
 
-	 // } <window iter>
+	} //<window iter>
    }
    infile->Close();
   }
